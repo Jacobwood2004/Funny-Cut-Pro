@@ -1,0 +1,17 @@
+# Dependencies — reinstalled with `npm install`
+node_modules/
+
+# Build output — the installer + unpacked app (belongs on a GitHub Release, not in the repo)
+dist/
+
+# Claude Code local files
+.claude/
+
+# Dev-only launcher / helper scripts — public users run the installer instead
+*.bat
+
+# OS / editor cruft
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.log

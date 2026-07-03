@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Funny Cut Pro</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      // Apply the saved theme to <html> BEFORE first paint (no default-theme flash)
+      (function () {
+        try {
+          var c = window.bootConfig || {};
+          var el = document.documentElement;
+          var t = c.theme || 'indigo';
+          if (t.indexOf('custom:') === 0) {
+            var id = t.slice(7);
+            var ct = (c.customThemes || []).filter(function (x) { return x.id === id; })[0];
+            if (ct) {
+              el.setAttribute('data-theme', 'custom');
+              el.style.setProperty('--app-grad', 'linear-gradient(135deg, ' + ct.bg1 + ' 0%, ' + ct.bg2 + ' 100%)');
+              el.style.setProperty('--grad', 'linear-gradient(90deg, ' + ct.accent + ', ' + ct.accent2 + ')');
+              el.style.setProperty('--accent', ct.accent);
+              el.style.setProperty('--seek', ct.accent);
+              el.style.setProperty('--seek-light', ct.accent2);
+            } else {
+              el.setAttribute('data-theme', 'indigo');
+            }
+          } else {
+            el.setAttribute('data-theme', t);
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <!-- ============ INTRO SPLASH ("FCP" unfolds into "Funny Cut Pro") ============ -->
+    <div id="splash" class="splash">
+      <div id="splashWelcome" class="sl-welcome">Welcome to</div>
+      <div id="splashLogo" class="splash-logo">
+        <span class="sl-word">F<span class="sl-rest">unny</span></span><span class="sl-word">C<span class="sl-rest">ut</span></span><span class="sl-word sl-pro">P<span class="sl-rest">ro</span></span>
+      </div>
+    </div>
+
+    <!-- ============ FIRST-RUN SETUP WIZARD ============ -->
+    <section id="onboard" class="screen hidden">
+      <div class="ob-card">
+        <div class="ob-head">
+          <span class="ob-brand">Funny&nbsp;Cut <span class="brand-pro">Pro</span></span>
+          <div class="ob-dots">
+            <span class="ob-dot active"></span><span class="ob-dot"></span><span class="ob-dot"></span><span class="ob-dot"></span>
+          </div>
+        </div>
+
+        <!-- step 1: folders -->
+        <div class="ob-step active" data-obstep="0">
+          <h2 class="ob-title">Let's set up your clips</h2>
+          <p class="ob-sub">Funny Cut Pro plays through a folder of clips so you can sort the keepers from the misses.</p>
+          <div class="prefrow">
+            <span class="prefname">Input folder<small id="obInPath" class="pathline muted">Not selected — where your recorded clips are</small></span>
+            <button id="obInBtn" class="btn btn-sm btn-ghost">Choose…</button>
+          </div>
+          <div class="prefrow">
+            <span class="prefname">Output folder<small id="obOutPath" class="pathline muted">Optional — where saved keepers get copied</small></span>
+            <button id="obOutBtn" class="btn btn-sm btn-ghost">Choose…</button>
+          </div>
+        </div>
+
+        <!-- step 2: optional features -->
+        <div class="ob-step" data-obstep="1">
+          <h2 class="ob-title">Optional features</h2>
+          <p class="ob-sub">All of this can be changed later in Settings.</p>
+          <label class="prefrow">
+            <span class="prefname">YouTube downloader<small>Adds a red toolbar button to download videos by URL (uses yt-dlp)</small></span>
+            <input type="checkbox" id="obYt" class="switch" />
+          </label>
+          <div class="prefrow hidden" id="obYtFolderRow">
+            <span class="prefname">Download folder<small id="obYtPath" class="pathline muted">Not selected</small></span>
+            <button id="obYtBtn" class="btn btn-sm btn-ghost">Choose…</button>
+          </div>
+          <label class="prefrow">
+            <span class="prefname">Clip details button<small>Blue info (i) button in the toolbar — date, duration, resolution, size</small></span>
+            <input type="checkbox" id="obClipInfo" class="switch" checked />
+          </label>
+          <label class="prefrow">
+            <span class="prefname">Playback speed control<small>Speed dropdown (0.25x–3x) in the play bar</small></span>
+            <input type="checkbox" id="obSpeed" class="switch" checked />
+          </label>
+          <label class="prefrow">
+            <span class="prefname">Start clips partway in<small>Begin each long clip a few seconds in — skips the dead air</small></span>
+            <input type="checkbox" id="obStartEnabled" class="switch" />
+          </label>
+          <label class="prefrow">
+            <span class="prefname">Start point<small>How many seconds into each clip</small></span>
+            <span class="numwrap"><input type="number" id="obStartAt" class="num-input" min="0" max="3600" step="1" value="20" /><span class="unit">sec</span></span>
+          </label>
+          <div class="prefrow">
+            <span class="prefname">Default video player<small id="obAssocNote">Add Funny Cut Pro to the "Open with" menu, then pick it as your default in the Windows Settings page that opens</small></span>
+            <button id="obAssocBtn" class="btn btn-sm btn-ghost">Set up…</button>
+          </div>
+        </div>
+
+        <!-- step 3: keybinds -->
+        <div class="ob-step" data-obstep="2">
+          <h2 class="ob-title">Keybinds</h2>
+          <p class="ob-sub">Happy with the defaults? Click a key to rebind it — <b>Esc</b> cancels, <b>Backspace</b> clears.</p>
+          <div id="obKeybindList" class="kb-list ob-kb"></div>
+        </div>
+
+        <!-- step 4: theme -->
+        <div class="ob-step" data-obstep="3">
+          <h2 class="ob-title">Pick a look</h2>
+          <p class="ob-sub">Applies instantly — or build your own with <b>+ New theme</b>.</p>
+          <div id="obThemeSwatches" class="swatchgrid"></div>
+          <!-- the Settings theme editor is adopted into this slot while the wizard is open -->
+          <div id="obThemeEditorSlot"></div>
+        </div>
+
+        <div class="ob-foot">
+          <button id="obBack" class="btn btn-ghost hidden">← Back</button>
+          <span class="ob-hint" id="obHint"></span>
+          <button id="obNext" class="btn btn-primary" disabled>Next →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SETTINGS / SETUP (tabbed modal) ============ -->
+    <section id="setup" class="screen">
+      <div class="setcard">
+        <div class="sethead">
+          <span class="settitle">Settings</span>
+          <button class="setclose hidden" id="setClose" title="Close (Esc)">✕</button>
+        </div>
+        <div class="setbody">
+          <div class="setnav">
+            <div class="setnavitem active" data-stab="theme">Theme</div>
+            <div class="setnavitem" data-stab="prefs">Preferences</div>
+            <div class="setnavitem" data-stab="keys">Keybinds</div>
+            <div class="setnavitem" data-stab="folders">Folders</div>
+            <div class="setnavitem" data-stab="youtube">YouTube</div>
+          </div>
+          <div class="setcontent">
+            <!-- ===== Theme ===== -->
+            <div class="setpane active" id="spane-theme">
+              <div class="setlabel">Presets</div>
+              <div id="themeSwatches" class="swatchgrid"></div>
+
+              <div id="themeEditor" class="theme-editor hidden">
+                <div class="setlabel">Custom theme</div>
+                <div class="namerow">
+                  <span class="tlabel">Name</span>
+                  <input type="text" id="teName" class="name-input" placeholder="My theme" maxlength="28" spellcheck="false" />
+                </div>
+                <div class="setlabel">Colors — pick two per gradient (previews live)</div>
+                <div class="themerow">
+                  <span class="tlabel">Background gradient</span>
+                  <input type="color" id="teBg1" value="#16213f" />
+                  <input type="color" id="teBg2" value="#241a3d" />
+                  <span class="gradprev" id="gpBg"></span>
+                </div>
+                <div class="themerow">
+                  <span class="tlabel">Accent / UI gradient</span>
+                  <input type="color" id="teAccent" value="#7c6cf0" />
+                  <input type="color" id="teAccent2" value="#8b5cf6" />
+                  <span class="gradprev" id="gpAccent"></span>
+                </div>
+                <div class="themepreview">
+                  <div class="pvbg" id="pvBg">Background</div>
+                  <div class="pvaccent" id="pvAccent">Accent</div>
+                </div>
+                <div class="setactions">
+                  <button id="teNew" class="btn btn-sm">+ Save as new</button>
+                  <button id="teDelete" class="btn btn-sm">Delete</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ===== Preferences ===== -->
+            <div class="setpane" id="spane-prefs">
+              <div class="setlabel">Playback</div>
+              <label class="prefrow">
+                <span class="prefname">Skip amount<small>How far ← / → and the skip buttons jump</small></span>
+                <span class="numwrap"><input type="number" id="setupSkip" class="num-input" min="1" max="600" step="1" value="10" /><span class="unit">sec</span></span>
+              </label>
+              <label class="prefrow">
+                <span class="prefname">Start clips partway in<small>Begin each long clip a few seconds in</small></span>
+                <input type="checkbox" id="setupStartEnabled" class="switch" />
+              </label>
+              <label class="prefrow">
+                <span class="prefname">Start point<small>How many seconds into each clip</small></span>
+                <span class="numwrap"><input type="number" id="setupStartAt" class="num-input" min="0" max="3600" step="1" value="20" /><span class="unit">sec</span></span>
+              </label>
+              <label class="prefrow">
+                <span class="prefname">Playback speed control<small>Show the speed dropdown (0.25x–3x) in the play bar</small></span>
+                <input type="checkbox" id="setupSpeed" class="switch" />
+              </label>
+
+              <div class="setlabel">Appearance &amp; startup</div>
+              <label class="prefrow">
+                <span class="prefname">Play intro animation<small>Show the "FCP" unfold splash on startup</small></span>
+                <input type="checkbox" id="setupIntro" class="switch" />
+              </label>
+              <label class="prefrow">
+                <span class="prefname">Fullscreen on open<small>Go fullscreen when opening a clip (preview)</small></span>
+                <input type="checkbox" id="setupBootFs" class="switch" />
+              </label>
+              <label class="prefrow">
+                <span class="prefname">Clip details button<small>Show the blue info (i) button in the toolbar — click it for clip details</small></span>
+                <input type="checkbox" id="setupClipInfo" class="switch" />
+              </label>
+
+              <div class="setlabel">Reset</div>
+              <div class="prefrow">
+                <span class="prefname">Reset app<small>Deletes all settings and restarts the app into the first-time setup</small></span>
+                <button id="resetSetupBtn" class="btn btn-sm btn-quit">Reset…</button>
+              </div>
+            </div>
+
+            <!-- ===== Keybinds ===== -->
+            <div class="setpane" id="spane-keys">
+              <div class="setlabel">Player shortcuts</div>
+              <div id="keybindList" class="kb-list"></div>
+              <p class="set-note">Click a key, then press the key you want. <b>Esc</b> cancels · <b>Backspace</b> clears. Volume up / down are unbound by default.</p>
+              <div class="setactions">
+                <button id="kbReset" class="btn btn-sm">Reset to defaults</button>
+              </div>
+            </div>
+
+            <!-- ===== Folders ===== -->
+            <div class="setpane" id="spane-folders">
+              <div class="setlabel">Clip folders</div>
+              <div class="prefrow">
+                <span class="prefname">Input folder<small id="inputPath" class="pathline muted">Not selected</small></span>
+                <button id="chooseInput" class="btn btn-sm btn-ghost">Change…</button>
+              </div>
+              <div class="prefrow">
+                <span class="prefname">Output folder<small id="outputPath" class="pathline muted">Not selected</small></span>
+                <button id="chooseOutput" class="btn btn-sm btn-ghost">Change…</button>
+              </div>
+
+            </div>
+
+            <!-- ===== YouTube downloader ===== -->
+            <div class="setpane" id="spane-youtube">
+              <div class="setlabel">YouTube downloader</div>
+              <label class="prefrow">
+                <span class="prefname">Enable downloader<small>Download videos by URL into a folder you choose</small></span>
+                <input type="checkbox" id="setupYt" class="switch" />
+              </label>
+              <div id="ytBody" class="hidden">
+                <div class="prefrow">
+                  <span class="prefname">Download folder<small id="ytFolderPath" class="pathline muted">Not selected</small></span>
+                  <button id="chooseYtFolder" class="btn btn-sm btn-ghost">Change…</button>
+                </div>
+                <p class="set-note">A red YouTube button appears in the top-left toolbar — click it to paste a link and download.</p>
+              </div>
+              <p class="set-note">Uses <b>yt-dlp</b> (fetched automatically on first use — needs internet once). Only download videos you have the rights to.</p>
+            </div>
+          </div>
+        </div>
+        <div class="setfoot">
+          <button id="githubBtn" class="btn btn-ghost btn-sm gh-btn" title="Funny Cut Pro on GitHub — opens in your browser" aria-label="Open Funny Cut Pro on GitHub">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+            <span>GitHub</span>
+          </button>
+          <span id="verLabel" class="ver-label"></span>
+          <button id="updateBtn" class="btn btn-sm btn-ghost update-btn hidden">⬆ Update available</button>
+          <p id="setupHint" class="hint"></p>
+          <button id="startBtn" class="btn btn-primary" disabled>Save</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PLAYER SCREEN ============ -->
+    <section id="player" class="screen hidden">
+      <header class="topbar">
+        <div class="topbar-left">
+          <!-- Browse + Clip/Trim tools live in the header while windowed; hidden with the topbar in fullscreen -->
+          <div class="vtools">
+            <button id="browseBtn" class="vtool" title="Browse clips (Tab)" aria-label="Browse clips">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+            </button>
+            <button id="clipModeBtn" class="vtool scissors" title="Clip / trim mode (V)" aria-label="Clip mode">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+            </button>
+            <button id="previewTrimBtn" class="vtool scissors hidden" title="Trim this clip &amp; save a copy" aria-label="Trim &amp; save">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+            </button>
+            <button id="infoBtn" class="vtool info" title="Clip details" aria-label="Clip details" aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+            <button id="ytBtn" class="vtool youtube hidden" title="Download from YouTube" aria-label="Download from YouTube">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23.5 6.5a3 3 0 0 0-2.12-2.12C19.5 3.9 12 3.9 12 3.9s-7.5 0-9.38.48A3 3 0 0 0 .5 6.5 31.3 31.3 0 0 0 0 12a31.3 31.3 0 0 0 .5 5.5 3 3 0 0 0 2.12 2.12C4.5 20.1 12 20.1 12 20.1s7.5 0 9.38-.48A3 3 0 0 0 23.5 17.5 31.3 31.3 0 0 0 24 12a31.3 31.3 0 0 0-.5-5.5z"/><path fill="#fff" d="M9.6 15.6V8.4L15.8 12z"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="topbar-center">
+          <span class="brandmark" id="brandMark" aria-label="Funny Cut Pro">Funny&nbsp;Cut <span class="brand-pro">Pro</span></span>
+        </div>
+        <div class="topbar-right">
+          <button id="settingsBtn" class="btn btn-ghost btn-sm">⚙ Settings</button>
+        </div>
+      </header>
+
+      <div class="jump-row">
+        <button id="previewExitBtn" class="btn btn-ghost btn-sm hidden" title="Open the full app">📂 All clips</button>
+        <span id="clipName" class="clip-name"></span>
+      </div>
+
+      <div class="video-wrap">
+        <span id="clipBadge" class="clip-badge hidden">✂ CLIP MODE</span>
+        <video id="video"></video>
+        <!-- clip details (fills the side gutter when the video is letterboxed) -->
+        <aside id="clipInfo" class="clip-info hidden" aria-label="Clip details">
+          <div class="ci-title">Clip details</div>
+          <div class="ci-name" id="ciName"></div>
+          <dl class="ci-rows">
+            <div><dt>Date</dt><dd id="ciDate">—</dd></div>
+            <div><dt>Duration</dt><dd id="ciDur">—</dd></div>
+            <div><dt>Resolution</dt><dd id="ciRes">—</dd></div>
+            <div><dt>Size</dt><dd id="ciSize">—</dd></div>
+          </dl>
+        </aside>
+        <div id="vControls" class="vcontrols">
+          <div class="v-seekrow">
+            <span id="vTime" class="vtime">0:00</span>
+            <div id="vSeek" class="vseek">
+              <div id="vSeekFill" class="vseek-fill"></div>
+              <div id="vSeekThumb" class="vseek-thumb"></div>
+            </div>
+            <span id="vRemain" class="vtime">0:00</span>
+          </div>
+          <div class="v-btnrow">
+            <div class="v-left">
+              <button id="vMute" class="vbtn vbtn-icon" title="Mute"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></button>
+              <input id="vVol" class="vvol" type="range" min="0" max="1" step="0.05" value="1" />
+              <div class="v-speed" id="vSpeedWrap">
+                <button id="vSpeedBtn" class="vbtn vbtn-speed" title="Playback speed" aria-haspopup="true" aria-expanded="false">1x</button>
+                <div id="vSpeedMenu" class="v-speed-menu hidden" role="menu">
+                  <button class="v-speed-opt" data-rate="0.25" role="menuitem">0.25x</button>
+                  <button class="v-speed-opt" data-rate="0.5" role="menuitem">0.5x</button>
+                  <button class="v-speed-opt" data-rate="0.75" role="menuitem">0.75x</button>
+                  <button class="v-speed-opt" data-rate="1" role="menuitem">1x</button>
+                  <button class="v-speed-opt" data-rate="2" role="menuitem">2x</button>
+                  <button class="v-speed-opt" data-rate="3" role="menuitem">3x</button>
+                </div>
+              </div>
+            </div>
+            <div class="v-center">
+              <button id="vBack10" class="vbtn vbtn-seek" title="Back 10 seconds">↺&#8202;10</button>
+              <button id="vPlay" class="vbtn vbtn-play" title="Play / Pause (Space)">▶</button>
+              <button id="vFwd10" class="vbtn vbtn-seek" title="Forward 10 seconds">10&#8202;↻</button>
+            </div>
+            <div class="v-right">
+              <button id="vPrev" class="vbtn vbtn-text" title="Previous clip (↓)">⏮ Prev</button>
+              <button id="vNext" class="vbtn vbtn-text" title="Next clip (↑)">Next ⏭</button>
+              <button id="vSave" class="vbtn vbtn-save" title="Save to output (E)">✓ Save</button>
+              <button id="vFull" class="vbtn" title="Fullscreen (F)">⛶</button>
+            </div>
+          </div>
+        </div>
+        <div id="emptyState" class="empty-state hidden">
+          <p id="emptyMsg">No clips found.</p>
+          <div class="empty-actions">
+            <button id="retryBtn" class="btn btn-primary">Retry</button>
+            <button id="emptyChangeBtn" class="btn btn-ghost">Change folders</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Premiere-style trim timeline (clip mode only) -->
+      <div id="clipPanel" class="clip-panel hidden">
+        <div class="tl-readout">
+          <span>In <b id="tlIn">0:00.0</b></span>
+          <span>Out <b id="tlOut">0:00.0</b></span>
+          <span>Selection <b id="tlSel">0:00.0</b></span>
+          <span class="tl-keys">scrub to move playhead · <b>C</b> set start · <b>V</b> set end</span>
+        </div>
+        <div id="tlRuler" class="tl-ruler"></div>
+        <div id="tlTrack" class="tl-track">
+          <div class="tl-clip">
+            <div id="tlDimL" class="tl-dim"></div>
+            <div id="tlDimR" class="tl-dim"></div>
+            <div id="tlSelection" class="tl-selection">
+              <div id="tlHandleL" class="tl-handle left"></div>
+              <div id="tlHandleR" class="tl-handle right"></div>
+            </div>
+          </div>
+          <div id="tlPlayhead" class="tl-playhead"></div>
+        </div>
+        <div class="clip-actions">
+          <button id="saveCutBtn" class="btn btn-primary">💾 Save cut…</button>
+          <button id="exitClipBtn" class="btn btn-ghost">Exit clip mode</button>
+        </div>
+      </div>
+
+      <div class="bottombar">
+        <div class="bottombar-left">
+          <label class="check-row inline">
+            <input type="checkbox" id="startAt20" />
+            <span id="startAtText">Start at 20s</span>
+          </label>
+          <span id="startWarn" class="start-warn hidden"></span>
+        </div>
+        <span class="shortcuts">
+          <b>← / →</b> <span id="skipHint">±10s</span> &nbsp; <b>↑</b> next &nbsp; <b>↓</b> prev &nbsp; <b>E</b> save &nbsp; <b>Tab</b> browse &nbsp; <b>V</b> clip &nbsp; <b>F</b> fullscreen &nbsp; <b>Space</b> play/pause
+        </span>
+        <button id="openOutBtn" class="btn btn-ghost btn-sm">Open output folder</button>
+      </div>
+
+      <div id="toast" class="toast hidden"></div>
+    </section>
+
+    <!-- ============ LIBRARY (thumbnail grid) ============ -->
+    <section id="library" class="screen hidden">
+      <header class="lib-topbar">
+        <button id="libBack" class="btn btn-ghost">← Back to player</button>
+        <div class="lib-search">
+          <input id="libSearch" type="search" placeholder="Search clips…" />
+        </div>
+        <button id="libTop" class="btn btn-ghost btn-sm" title="Jump to first clip">↑ Top</button>
+        <button id="libBottom" class="btn btn-ghost btn-sm" title="Jump to last clip">↓ Bottom</button>
+        <span id="libCount" class="lib-count"></span>
+      </header>
+      <div id="libGrid" class="lib-grid"></div>
+    </section>
+
+    <!-- right-click menu for clips in the browser -->
+    <div id="ctxMenu" class="ctx-menu hidden">
+      <button id="ctxReveal" class="ctx-item">📂 Show in folder</button>
+      <button id="ctxDelete" class="ctx-item danger">🗑 Delete clip</button>
+    </div>
+
+    <!-- YouTube download popup (opened from the toolbar button) -->
+    <div id="ytModal" class="yt-modal hidden">
+      <div class="yt-card">
+        <div class="yt-head">
+          <span class="yt-title">Download from YouTube</span>
+          <button id="ytClose" class="setclose" title="Close (Esc)">✕</button>
+        </div>
+        <div class="yt-content">
+          <p class="yt-dest">Saving to <b id="ytDest">—</b></p>
+          <div class="yt-fmt" id="ytFmt" role="group" aria-label="Download format">
+            <button class="yt-fmt-opt active" data-fmt="video">Video</button>
+            <button class="yt-fmt-opt" data-fmt="mp3">MP3</button>
+          </div>
+          <div class="yt-dl">
+            <input type="text" id="ytUrl" class="name-input" placeholder="Paste a video URL…" spellcheck="false" />
+            <button id="ytGoBtn" class="btn btn-primary">Download</button>
+          </div>
+          <div id="ytProgWrap" class="yt-prog hidden"><div id="ytProgBar" class="yt-prog-bar"></div></div>
+          <p id="ytStatus" class="set-note"></p>
+        </div>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
