@@ -1,6 +1,9 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/Jacobwood2004/Funny-Cut-Pro/main/build/wordmark.png" alt="Funny Cut Pro" width="520" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Jacobwood2004/Funny-Cut-Pro/main/build/wordmark-clear.png" />
+  <img src="https://raw.githubusercontent.com/Jacobwood2004/Funny-Cut-Pro/main/build/wordmark.png" alt="Funny Cut Pro" width="520" />
+</picture>
 
 ### A fast clip-sorting and trimming workflow for reviewing recorded clips
 
