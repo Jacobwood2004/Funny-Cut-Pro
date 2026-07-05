@@ -1,7 +1,7 @@
-[README.md](https://github.com/user-attachments/files/29679707/README.md)
+[README.md](https://github.com/user-attachments/files/29679924/README.md)
 <div align="center">
 
-<img src="build/wordmark.png" alt="Funny Cut Pro" width="520" />
+<img src="https://raw.githubusercontent.com/Jacobwood2004/Funny-Cut-Pro/main/build/wordmark.png" alt="Funny Cut Pro" width="520" />
 
 ### A fast clip-sorting and trimming workflow for reviewing recorded clips
 
